@@ -99,3 +99,24 @@ set Medicare_PS_PUF;
 if hcpcs_description="MRI";
 run;
 
+
+
+
+
+proc mean
+
+
+proc summary
+
+
+proc sql
+
+
+
+
+proc export data=wood_roof_pct
+  outfile = 'wood_roof_pct.csv'
+  dbms=dlm replace; 
+  delimiter  = ",";
+
+run; 
