@@ -1,5 +1,17 @@
+/*****************************************************
+Problem Set 4, Question 3  
+Stats 506, Fall 2018
+
+Author: Chen Xie chenxie@umich.edu
+ *****************************************************
+*/
+
+
+/*** Part a ***/
+
 libname mylib 'Z:\2018FALL\stat506\stats506PS4_ChenXie';
 
+/* Import the data: */
 DATA Medicare_PS_PUF;
 	LENGTH
 		npi              					$ 10
@@ -94,13 +106,16 @@ DATA Medicare_PS_PUF;
 RUN;
 
 
+/*** Part b ***/
+
+/* Subsetting: */
 data reduce;
 set Medicare_PS_PUF;
 where hcpcs_description like "MRI" and hcpcs_code like '7%' ;
 run;
 
 
-
+/*** Part c ***/
 
 
 proc mean
@@ -109,14 +124,15 @@ proc mean
 proc summary
 
 
-proc sql
-
-
-
-
 proc export data=wood_roof_pct
-  outfile = 'wood_roof_pct.csv'
+  outfile = 'ps4_q3c.csv'
   dbms=dlm replace; 
   delimiter  = ",";
 
 run; 
+
+/*** Part d ***/
+
+proc sql
+
+/*** Part e ***/
