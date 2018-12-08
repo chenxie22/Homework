@@ -96,7 +96,7 @@ RUN;
 
 data reduce;
 set Medicare_PS_PUF;
-if hcpcs_description="MRI";
+where hcpcs_description like "MRI" and hcpcs_code like '7%' ;
 run;
 
 
