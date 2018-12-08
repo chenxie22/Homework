@@ -127,7 +127,8 @@ proc sql;
 	   total_payment/volumn as average_payment
       from Medicare_PS_PUF
       where hcpcs_description like "%MRI%" and hcpcs_code like '7%'
-      group by hcpcs-cd;
+      group by hcpcs-cd
+      having ;
 
   quit;
   
