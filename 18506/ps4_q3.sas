@@ -9,7 +9,6 @@ Author: Chen Xie chenxie@umich.edu
 
 /*** Part a ***/
 
-libname mylib 'Z:\2018FALL\stat506\stats506PS4_ChenXie';
 
 /* Import the data: */
 DATA Medicare_PS_PUF;
