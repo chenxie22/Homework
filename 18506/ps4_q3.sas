@@ -123,16 +123,18 @@ proc sql;
 
   /* Count total homes by state */
   create table q3d as
-    select npi, , reportable_domain
+    select sum(line_srvc_cnt) as volumn, 
+           sum(line_srvc_cnt*average_Medicare_payment_amt) as total_payment,
+	   total_payment/volumn as average_payment
       from Medicare_PS_PUF
-      where rooftype > 0
+      where hcpcs_description like "%MRI%" and hcpcs_code like '7%'
       group by hcpcs-cd;
 
   quit;
   
 /*** Part e ***/
 
-/* 
+/* Export to csv: */
 proc export data=q3c
   outfile = 'ps4_q3c.csv'
   dbms=dlm replace; 
