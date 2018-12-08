@@ -111,7 +111,7 @@ RUN;
 /* Subsetting: */
 data reduce;
 set Medicare_PS_PUF;
-where hcpcs_description like "MRI" and hcpcs_code like '7%' ;
+where hcpcs_description like "%MRI%" and hcpcs_code like '7%' ;
 run;
 
 
@@ -119,7 +119,28 @@ run;
 
 
 /*** Part d ***/
+proc sql;
 
+  /* Count total homes by state */
+  create table q3d as
+    select npi, , reportable_domain
+      from Medicare_PS_PUF
+      where rooftype > 0
+      group by hcpcs-cd;
 
-
+  quit;
+  
 /*** Part e ***/
+
+/* 
+proc export data=q3c
+  outfile = 'ps4_q3c.csv'
+  dbms=dlm replace; 
+  delimiter  = ",";
+
+proc export data=q3d
+  outfile = 'ps4_q3d.csv'
+  dbms=dlm replace; 
+  delimiter  = ",";
+
+run; 
