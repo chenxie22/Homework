@@ -118,21 +118,8 @@ run;
 /*** Part c ***/
 
 
-proc mean
-
-
-proc summary
-
-
-proc export data=wood_roof_pct
-  outfile = 'ps4_q3c.csv'
-  dbms=dlm replace; 
-  delimiter  = ",";
-
-run; 
-
 /*** Part d ***/
 
-proc sql
+
 
 /*** Part e ***/
