@@ -1,0 +1,681 @@
+-------------------------------------------------------------------------------
+      name:  <unnamed>
+       log:  Z:\Desktop\2018FALL\stat506\stats506PS2_ChenXie\ps2_q2.log
+  log type:  text
+ opened on:  15 Oct 2018, 01:01:42
+
+. clear
+
+. 
+. *------------------------------------------------*
+. * Part a, Import and merge the data sets by SEQN *
+. *------------------------------------------------*
+. 
+. // Import and save OHX_D.XPT
+. import sasxport https://wwwn.cdc.gov/Nchs/Nhanes/2005-2006/OHX_D.XPT
+
+. save OHX.dta, replace
+file OHX.dta saved
+
+. 
+. // Import and save DEMO_D.XPT and merge
+. import sasxport https://wwwn.cdc.gov/Nchs/Nhanes/2005-2006/DEMO_D.XPT
+
+. save DEMO.dta, replace
+file DEMO.dta saved
+
+. use DEMO.dta, clear
+
+. merge 1:1 seqn using OHX.dta
+
+    Result                           # of obs.
+    -----------------------------------------
+    not matched                         2,043
+        from master                     2,043  (_merge==1)
+        from using                          0  (_merge==2)
+
+    matched                             8,305  (_merge==3)
+    -----------------------------------------
+
+. 
+. // Reduce to matched data
+. keep if _merge==3
+(2,043 observations deleted)
+
+. save OH_DEMO_merge.dta, replace
+file OH_DEMO_merge.dta saved
+
+. use OH_DEMO_merge.dta, clear
+
+. 
+. // Reduce to the variables of interest
+. // Rename variables 
+. keep ohx04htc ridagemn riagendr ridreth1 ///
+> indfmpir wtmec2yr sdmvstra sdmvpsu
+
+. rename (ohx04htc ridagemn riagendr ridreth1 indfmpir) ///
+> (tooth age gender race pir)
+
+. 
+. **************************************************
+. *------------------------------------------------*
+. * Part b, Logistic Regression between Age and    *
+. *         the Probability of losing the Primary  *
+. *         upper right 2nd bicuspid               *
+. *------------------------------------------------*
+. 
+. // Collapse 'Permanent' group
+. recode tooth 2 5=2
+(tooth: 46 changes made)
+
+. 
+. // Decode missing values
+. mvdecode tooth, mv(9=.)
+       tooth: 5 missing values generated
+
+. 
+. // Drop missing values
+. drop if missing(tooth)
+(623 observations deleted)
+
+. 
+. // Create the response variable
+. generate tth = (tooth!=1)
+
+. 
+. // Decode variables
+. label define tth_codes ///
+>  1 "Primary" 2 "Permanent" 4 "Missing", replace  
+
+. label values tooth tth_codes 
+
+. 
+. // Label variables
+. label variable tth "Probability of losing primary" 
+
+. label variable age "Age in month" 
+
+. label variable race "Race/Ethnicity" 
+
+. label variable pir "Poverty Income Ratio" 
+
+. 
+. // Save for repeated use
+. save tth.dta, replace
+file tth.dta saved
+
+. 
+. // Drop and Save for regression
+. drop if missing(age)
+(119 observations deleted)
+
+. save age.dta, replace
+file age.dta saved
+
+. 
+. // Logistic regression between
+. // Age and Probability of losing primary tooth
+. logit tth age
+
+Iteration 0:   log likelihood = -2881.6973  
+Iteration 1:   log likelihood = -2107.4429  
+Iteration 2:   log likelihood = -962.00048  
+Iteration 3:   log likelihood = -765.23661  
+Iteration 4:   log likelihood = -757.79738  
+Iteration 5:   log likelihood = -757.77236  
+Iteration 6:   log likelihood = -757.77236  
+
+Logistic regression                             Number of obs     =      7,563
+                                                LR chi2(1)        =    4247.85
+                                                Prob > chi2       =     0.0000
+Log likelihood = -757.77236                     Pseudo R2         =     0.7370
+
+------------------------------------------------------------------------------
+         tth |      Coef.   Std. Err.      z    P>|z|     [95% Conf. Interval]
+-------------+----------------------------------------------------------------
+         age |   .0696778   .0025658    27.16   0.000     .0646489    .0747067
+       _cons |  -8.359362    .323495   -25.84   0.000    -8.993401   -7.725324
+------------------------------------------------------------------------------
+Note: 0 failures and 3168 successes completely determined.
+
+. 
+. // Display BIC of this model
+. estat ic
+
+Akaike's information criterion and Bayesian information criterion
+
+-----------------------------------------------------------------------------
+       Model |        Obs  ll(null)  ll(model)      df         AIC        BIC
+-------------+---------------------------------------------------------------
+           . |      7,563 -2881.697  -757.7724       2    1519.545   1533.407
+-----------------------------------------------------------------------------
+               Note: N=Obs used in calculating BIC; see [R] BIC note.
+
+. 
+. // Estimate ages
+. matrix coef=e(b)
+
+. svmat coef
+
+. local est_1 round((log(0.25/(1-0.25))-coef2)/coef1)
+
+. local est_2 round((log(0.5/(1-0.5))-coef2)/coef1)
+
+. local est_3 round((log(0.75/(1-0.75))-coef2)/coef1)
+
+. 
+. // The Estimated age at 25% losing Primary tooth
+. display `est_1'
+104
+
+. 
+. // The Estimated age at 50% losing Primary tooth
+. display `est_2'
+120
+
+. 
+. // The Estimated age at 75% losing Primary tooth
+. display `est_3'
+136
+
+. 
+. // Compute the min and max of representative ages
+. // and display
+. local start floor(`est_1'/12)
+
+. local end ceil(`est_3'/12)
+
+. 
+. // The minimum of representative ages
+. display `start'
+8
+
+. 
+. // The maximum of representative ages
+. display `end'
+12
+
+. 
+. // The range of representative ages
+. numlist "8/12"
+
+. local age_range "`r(numlist)'"
+
+. display "`age_range'"
+8 9 10 11 12
+
+. 
+. 
+. **************************************************
+. *------------------------------------------------*
+. * Part c, Model Selection by BIC                 *
+. *------------------------------------------------*
+. 
+. // Condider Gender
+. 
+. // Decode variables
+. label define gd_codes 1 "Male" 2 "Female", replace
+
+. label values gender gd_codes
+
+. 
+. // Logistic regression: add Gender
+. logit tth age i.gender
+
+Iteration 0:   log likelihood = -2881.6973  
+Iteration 1:   log likelihood = -2107.4296  
+Iteration 2:   log likelihood = -977.47531  
+Iteration 3:   log likelihood = -767.29902  
+Iteration 4:   log likelihood = -757.68317  
+Iteration 5:   log likelihood = -757.63087  
+Iteration 6:   log likelihood = -757.63086  
+
+Logistic regression                             Number of obs     =      7,563
+                                                LR chi2(2)        =    4248.13
+                                                Prob > chi2       =     0.0000
+Log likelihood = -757.63086                     Pseudo R2         =     0.7371
+
+------------------------------------------------------------------------------
+         tth |      Coef.   Std. Err.      z    P>|z|     [95% Conf. Interval]
+-------------+----------------------------------------------------------------
+         age |   .0696983   .0025674    27.15   0.000     .0646663    .0747302
+             |
+      gender |
+     Female  |    .070195   .1319718     0.53   0.595    -.1884649    .3288549
+       _cons |  -8.397414   .3320908   -25.29   0.000      -9.0483   -7.746528
+------------------------------------------------------------------------------
+Note: 0 failures and 3172 successes completely determined.
+
+. 
+. // Display BIC, drop Gender
+. estat ic
+
+Akaike's information criterion and Bayesian information criterion
+
+-----------------------------------------------------------------------------
+       Model |        Obs  ll(null)  ll(model)      df         AIC        BIC
+-------------+---------------------------------------------------------------
+           . |      7,563 -2881.697  -757.6309       3    1521.262   1542.055
+-----------------------------------------------------------------------------
+               Note: N=Obs used in calculating BIC; see [R] BIC note.
+
+. 
+. 
+. // Condider Race
+. 
+. // Collape groups
+. recode race 2 5=2
+(race: 354 changes made)
+
+. 
+. // Create indicator variables
+. // Using White as the reference
+. generate mxc = (race==1) 
+
+. generate blk = (race==4)
+
+. generate oth = (race==2)
+
+. 
+. // Decode variables
+. label define rc_codes 1 "Mexican" 2 ///
+>  "Other" 3 "White" 4 "Black", replace
+
+. label values race rc_codes
+
+. 
+. // Logistic regression: add Black
+. logit tth age i.blk
+
+Iteration 0:   log likelihood = -2881.6973  
+Iteration 1:   log likelihood = -2103.4944  
+Iteration 2:   log likelihood = -960.65791  
+Iteration 3:   log likelihood = -759.97969  
+Iteration 4:   log likelihood =  -751.2846  
+Iteration 5:   log likelihood = -751.24373  
+Iteration 6:   log likelihood = -751.24372  
+
+Logistic regression                             Number of obs     =      7,563
+                                                LR chi2(2)        =    4260.91
+                                                Prob > chi2       =     0.0000
+Log likelihood = -751.24372                     Pseudo R2         =     0.7393
+
+------------------------------------------------------------------------------
+         tth |      Coef.   Std. Err.      z    P>|z|     [95% Conf. Interval]
+-------------+----------------------------------------------------------------
+         age |   .0700749   .0025924    27.03   0.000     .0649938    .0751559
+       1.blk |   .5207269   .1452682     3.58   0.000     .2360065    .8054474
+       _cons |  -8.567218   .3342035   -25.63   0.000    -9.222244   -7.912191
+------------------------------------------------------------------------------
+Note: 0 failures and 3176 successes completely determined.
+
+. 
+. // Display BIC, retain Black
+. estat ic
+
+Akaike's information criterion and Bayesian information criterion
+
+-----------------------------------------------------------------------------
+       Model |        Obs  ll(null)  ll(model)      df         AIC        BIC
+-------------+---------------------------------------------------------------
+           . |      7,563 -2881.697  -751.2437       3    1508.487   1529.281
+-----------------------------------------------------------------------------
+               Note: N=Obs used in calculating BIC; see [R] BIC note.
+
+. 
+. // Logistic regression: add Mexican
+. logit tth age i.blk i.mxc
+
+Iteration 0:   log likelihood = -2881.6973  
+Iteration 1:   log likelihood = -2101.6209  
+Iteration 2:   log likelihood =  -961.5948  
+Iteration 3:   log likelihood = -758.95609  
+Iteration 4:   log likelihood = -748.75051  
+Iteration 5:   log likelihood =  -748.6897  
+Iteration 6:   log likelihood = -748.68969  
+
+Logistic regression                             Number of obs     =      7,563
+                                                LR chi2(3)        =    4266.02
+                                                Prob > chi2       =     0.0000
+Log likelihood = -748.68969                     Pseudo R2         =     0.7402
+
+------------------------------------------------------------------------------
+         tth |      Coef.   Std. Err.      z    P>|z|     [95% Conf. Interval]
+-------------+----------------------------------------------------------------
+         age |    .070245   .0026021    27.00   0.000      .065145     .075345
+       1.blk |   .7002927   .1659798     4.22   0.000     .3749782    1.025607
+       1.mxc |   .3588566   .1591514     2.25   0.024     .0469255    .6707877
+       _cons |  -8.767041    .349809   -25.06   0.000    -9.452655   -8.081428
+------------------------------------------------------------------------------
+Note: 0 failures and 3170 successes completely determined.
+
+. 
+. // Display BIC, drop Mexican
+. estat ic
+
+Akaike's information criterion and Bayesian information criterion
+
+-----------------------------------------------------------------------------
+       Model |        Obs  ll(null)  ll(model)      df         AIC        BIC
+-------------+---------------------------------------------------------------
+           . |      7,563 -2881.697  -748.6897       4    1505.379   1533.103
+-----------------------------------------------------------------------------
+               Note: N=Obs used in calculating BIC; see [R] BIC note.
+
+. 
+. // Logistic regression: add Other
+. logit tth age i.blk i.oth
+
+Iteration 0:   log likelihood = -2881.6973  
+Iteration 1:   log likelihood = -2103.5697  
+Iteration 2:   log likelihood = -963.95456  
+Iteration 3:   log likelihood = -759.60988  
+Iteration 4:   log likelihood = -750.24099  
+Iteration 5:   log likelihood = -750.18961  
+Iteration 6:   log likelihood = -750.18959  
+
+Logistic regression                             Number of obs     =      7,563
+                                                LR chi2(3)        =    4263.02
+                                                Prob > chi2       =     0.0000
+Log likelihood = -750.18959                     Pseudo R2         =     0.7397
+
+------------------------------------------------------------------------------
+         tth |      Coef.   Std. Err.      z    P>|z|     [95% Conf. Interval]
+-------------+----------------------------------------------------------------
+         age |   .0702617   .0026021    27.00   0.000     .0651617    .0753617
+       1.blk |   .5674178   .1490265     3.81   0.000     .2753313    .8595043
+       1.oth |   .3374737   .2329567     1.45   0.147    -.1191131    .7940604
+       _cons |  -8.636156   .3391561   -25.46   0.000    -9.300889   -7.971422
+------------------------------------------------------------------------------
+Note: 0 failures and 3180 successes completely determined.
+
+. 
+. // Display BIC, drop Other
+. estat ic
+
+Akaike's information criterion and Bayesian information criterion
+
+-----------------------------------------------------------------------------
+       Model |        Obs  ll(null)  ll(model)      df         AIC        BIC
+-------------+---------------------------------------------------------------
+           . |      7,563 -2881.697  -750.1896       4    1508.379   1536.103
+-----------------------------------------------------------------------------
+               Note: N=Obs used in calculating BIC; see [R] BIC note.
+
+. 
+. 
+. // Consider Poverty Income Ratio
+. 
+. // Drop missing value
+. drop if missing(pir)
+(317 observations deleted)
+
+. 
+. // Save for repeated use
+. save pir.dta, replace
+file pir.dta saved
+
+. 
+. // Logistic regression: add pir
+. logit tth age i.blk i.oth pir
+
+Iteration 0:   log likelihood =  -2767.303  
+Iteration 1:   log likelihood = -2018.5486  
+Iteration 2:   log likelihood = -948.10765  
+Iteration 3:   log likelihood = -726.74328  
+Iteration 4:   log likelihood = -712.51188  
+Iteration 5:   log likelihood = -712.46535  
+Iteration 6:   log likelihood = -712.46534  
+
+Logistic regression                             Number of obs     =      7,246
+                                                LR chi2(4)        =    4109.68
+                                                Prob > chi2       =     0.0000
+Log likelihood = -712.46534                     Pseudo R2         =     0.7425
+
+------------------------------------------------------------------------------
+         tth |      Coef.   Std. Err.      z    P>|z|     [95% Conf. Interval]
+-------------+----------------------------------------------------------------
+         age |   .0715938   .0027174    26.35   0.000     .0662678    .0769197
+       1.blk |   .5467889   .1529046     3.58   0.000     .2471014    .8464765
+       1.oth |   .3685682   .2379772     1.55   0.121    -.0978585    .8349949
+         pir |  -.1201824    .045391    -2.65   0.008    -.2091472   -.0312176
+       _cons |  -8.535921   .3561399   -23.97   0.000    -9.233943     -7.8379
+------------------------------------------------------------------------------
+Note: 0 failures and 3064 successes completely determined.
+
+. 
+. // Display BIC, retain pir
+. estat ic
+
+Akaike's information criterion and Bayesian information criterion
+
+-----------------------------------------------------------------------------
+       Model |        Obs  ll(null)  ll(model)      df         AIC        BIC
+-------------+---------------------------------------------------------------
+           . |      7,246 -2767.303  -712.4653       5    1434.931   1469.372
+-----------------------------------------------------------------------------
+               Note: N=Obs used in calculating BIC; see [R] BIC note.
+
+. 
+. // Label variable
+. label variable blk "Black indicator"
+
+. 
+. // The final regression model
+. logit tth age i.blk pir
+
+Iteration 0:   log likelihood =  -2767.303  
+Iteration 1:   log likelihood = -2018.4446  
+Iteration 2:   log likelihood =  -943.5576  
+Iteration 3:   log likelihood = -727.20916  
+Iteration 4:   log likelihood = -713.72745  
+Iteration 5:   log likelihood = -713.67086  
+Iteration 6:   log likelihood = -713.67085  
+
+Logistic regression                             Number of obs     =      7,246
+                                                LR chi2(3)        =    4107.26
+                                                Prob > chi2       =     0.0000
+Log likelihood = -713.67085                     Pseudo R2         =     0.7421
+
+------------------------------------------------------------------------------
+         tth |      Coef.   Std. Err.      z    P>|z|     [95% Conf. Interval]
+-------------+----------------------------------------------------------------
+         age |   .0713747   .0027063    26.37   0.000     .0660704    .0766789
+       1.blk |   .4949803   .1489242     3.32   0.001     .2030943    .7868664
+         pir |  -.1190729    .045378    -2.62   0.009    -.2080121   -.0301337
+       _cons |  -8.460287   .3510302   -24.10   0.000    -9.148294   -7.772281
+------------------------------------------------------------------------------
+Note: 0 failures and 3063 successes completely determined.
+
+. 
+. **************************************************
+. *------------------------------------------------*
+. * Part d, Compute adjusted predictions at means, *
+. *         marginal effects at the mean, and      *
+. *         average marginal effects.              *
+. *------------------------------------------------*
+. 
+. // Adjusted predictions at the mean 
+. // At each of the representative age
+. margins, at(age=(96 108 120 132 144)) atmeans 
+
+Adjusted predictions                            Number of obs     =      7,246
+Model VCE    : OIM
+
+Expression   : Pr(tth), predict()
+
+1._at        : age             =          96
+               0.blk           =    .7281259 (mean)
+               1.blk           =    .2718741 (mean)
+               pir             =    2.463474 (mean)
+
+2._at        : age             =         108
+               0.blk           =    .7281259 (mean)
+               1.blk           =    .2718741 (mean)
+               pir             =    2.463474 (mean)
+
+3._at        : age             =         120
+               0.blk           =    .7281259 (mean)
+               1.blk           =    .2718741 (mean)
+               pir             =    2.463474 (mean)
+
+4._at        : age             =         132
+               0.blk           =    .7281259 (mean)
+               1.blk           =    .2718741 (mean)
+               pir             =    2.463474 (mean)
+
+5._at        : age             =         144
+               0.blk           =    .7281259 (mean)
+               1.blk           =    .2718741 (mean)
+               pir             =    2.463474 (mean)
+
+------------------------------------------------------------------------------
+             |            Delta-method
+             |     Margin   Std. Err.      z    P>|z|     [95% Conf. Interval]
+-------------+----------------------------------------------------------------
+         _at |
+          1  |    .145906   .0127616    11.43   0.000     .1208938    .1709183
+          2  |   .2868807   .0166531    17.23   0.000     .2542412    .3195202
+          3  |   .4864818   .0174419    27.89   0.000     .4522963    .5206673
+          4  |   .6904898   .0154591    44.67   0.000     .6601904    .7207892
+          5  |   .8400911   .0117878    71.27   0.000     .8169874    .8631948
+------------------------------------------------------------------------------
+
+. 
+. // Marginal effiects at the mean
+. // of Black at each representative age
+. margins, dydx(blk) at(age=(96 108 120 132 144)) atmeans 
+
+Conditional marginal effects                    Number of obs     =      7,246
+Model VCE    : OIM
+
+Expression   : Pr(tth), predict()
+dy/dx w.r.t. : 1.blk
+
+1._at        : age             =          96
+               0.blk           =    .7281259 (mean)
+               1.blk           =    .2718741 (mean)
+               pir             =    2.463474 (mean)
+
+2._at        : age             =         108
+               0.blk           =    .7281259 (mean)
+               1.blk           =    .2718741 (mean)
+               pir             =    2.463474 (mean)
+
+3._at        : age             =         120
+               0.blk           =    .7281259 (mean)
+               1.blk           =    .2718741 (mean)
+               pir             =    2.463474 (mean)
+
+4._at        : age             =         132
+               0.blk           =    .7281259 (mean)
+               1.blk           =    .2718741 (mean)
+               pir             =    2.463474 (mean)
+
+5._at        : age             =         144
+               0.blk           =    .7281259 (mean)
+               1.blk           =    .2718741 (mean)
+               pir             =    2.463474 (mean)
+
+------------------------------------------------------------------------------
+             |            Delta-method
+             |      dy/dx   Std. Err.      z    P>|z|     [95% Conf. Interval]
+-------------+----------------------------------------------------------------
+0.blk        |  (base outcome)
+-------------+----------------------------------------------------------------
+1.blk        |
+         _at |
+          1  |    .066838   .0216773     3.08   0.002     .0243512    .1093247
+          2  |   .1056674   .0327752     3.22   0.001     .0414291    .1699056
+          3  |   .1230124   .0365343     3.37   0.001     .0514066    .1946183
+          4  |   .1008256   .0289855     3.48   0.001     .0440151     .157636
+          5  |   .0616343   .0175143     3.52   0.000     .0273068    .0959618
+------------------------------------------------------------------------------
+Note: dy/dx for factor levels is the discrete change from the base level.
+
+. 
+. // Average marginal effect 
+. // of Black at each representative age
+. margins, dydx(blk) at(age=(96 108 120 132 144))
+
+Average marginal effects                        Number of obs     =      7,246
+Model VCE    : OIM
+
+Expression   : Pr(tth), predict()
+dy/dx w.r.t. : 1.blk
+
+1._at        : age             =          96
+
+2._at        : age             =         108
+
+3._at        : age             =         120
+
+4._at        : age             =         132
+
+5._at        : age             =         144
+
+------------------------------------------------------------------------------
+             |            Delta-method
+             |      dy/dx   Std. Err.      z    P>|z|     [95% Conf. Interval]
+-------------+----------------------------------------------------------------
+0.blk        |  (base outcome)
+-------------+----------------------------------------------------------------
+1.blk        |
+         _at |
+          1  |   .0670636   .0216958     3.09   0.002     .0245406    .1095867
+          2  |   .1051526    .032627     3.22   0.001     .0412049    .1691004
+          3  |   .1219341   .0363007     3.36   0.001     .0507861    .1930821
+          4  |   .1003884    .028907     3.47   0.001     .0437318     .157045
+          5  |    .061892   .0175782     3.52   0.000     .0274394    .0963445
+------------------------------------------------------------------------------
+Note: dy/dx for factor levels is the discrete change from the base level.
+
+. 
+. **************************************************
+. *------------------------------------------------*
+. * Part e, Refit as if the data were a survey     *
+. *         design and compare                     *
+. *------------------------------------------------*
+. 
+. // Set up
+. svyset sdmvpsu [pweight=wtmec2yr], strata(sdmvstra) vce(linearized)
+
+      pweight: wtmec2yr
+          VCE: linearized
+  Single unit: missing
+     Strata 1: sdmvstra
+         SU 1: sdmvpsu
+        FPC 1: <zero>
+
+. 
+. // Refit the model
+. svy: logit tth age i.blk pir 
+(running logit on estimation sample)
+
+Survey: Logistic regression
+
+Number of strata   =        15                Number of obs     =        7,246
+Number of PSUs     =        30                Population size   =  240,124,554
+                                              Design df         =           15
+                                              F(   3,     13)   =        27.65
+                                              Prob > F          =       0.0000
+
+------------------------------------------------------------------------------
+             |             Linearized
+         tth |      Coef.   Std. Err.      t    P>|t|     [95% Conf. Interval]
+-------------+----------------------------------------------------------------
+         age |    .061941   .0072296     8.57   0.000     .0465314    .0773506
+       1.blk |   .5434941   .1461948     3.72   0.002     .2318871     .855101
+         pir |  -.0811815   .0521922    -1.56   0.141    -.1924264    .0300635
+       _cons |  -7.516015   .8615597    -8.72   0.000    -9.352386   -5.679644
+------------------------------------------------------------------------------
+Note: 0 failures and 2811 successes completely determined.
+
+. 
+. 
+. log close
+      name:  <unnamed>
+       log:  Z:\Desktop\2018FALL\stat506\stats506PS2_ChenXie\ps2_q2.log
+  log type:  text
+ closed on:  15 Oct 2018, 01:02:47
+-------------------------------------------------------------------------------

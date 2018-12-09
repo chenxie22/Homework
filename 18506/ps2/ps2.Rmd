@@ -1,0 +1,497 @@
+---
+title: "Stats 506, F18, Problem Set 2"
+author: "Chen Xie, chenxie@umich.edu"
+date: "`r format.Date(Sys.Date(), '%B %d, %Y')`"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+# 80: --------------------------------------------------------------------------
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+## Question 1
+
+Aim: Use Stata to estimate the national totals for residential enrgy consumption.
+     
+And use the replicate weights to compute standard errors.
+
+
+The table of estimates with 95% CI in Electricity Usage, Natural Gas Usage, Propane Usage, and Fuel Oil or Kerosene Usage is shown as below.
+
+
+```{r q1_table, message=FALSE, warning = FALSE}
+library(tidyverse)
+recs_usage = readr::read_delim(
+  'recs2015_usage.csv',delim = ',')
+cap='**National Totals for Residential Energy Consumption** '
+recs_usage = recs_usage %>%
+  rename(`Electricity Usage, in kwh`= elec,
+         `Natural Gas Usage, in hundres of cubic feet`=gas,
+         `Propane Usagel, in gallons` = lp,
+         `Fuel Oil Kerosene Usage, in gallons` = oil) %>%
+  gather(newrows,valname,-stat) %>%
+  spread(stat,valname)
+
+# For 95% CI
+m = qnorm(.975)
+# Pretty Printing
+pwc = function(x) format(round(x), big.mark = ',')
+
+recs_usage %>%
+  rename(est=Estimates, se=`Standard Errors`) %>%
+  transmute(
+    `Energy` = newrows,
+    `Total Usage of Residential Energy (95% CI)`= 
+              sprintf('%s, (%6s, %6s)', pwc(est), 
+                          pwc(est - m*se),pwc(est + m*se))) %>%
+  knitr::kable( align  = 'l', cap = cap)
+```
+
+
+
+\pagebreak
+
+
+## Question 2
+
+### Part a
+
+In Stata, I used `import sasxport`, to read the data sets.
+
+### Part b
+
+Aim: Fit the logistic regression to estimate the relationship between age and the probablity of individuals lose their primary upper right 2nd bicusppid.
+
+Using this regression model, the estimated ages (in month) at 25%, 50%, and 75% of individuals losing their primary upper right 2nd bicuspid is (104, 120, 136).
+
+And the range of representative age (in year) values with one year increments is (8, 9, 10, 11, 12).
+
+### Part c
+
+The final model is the logistic regression between the probability and Age(in month)+Black(categorical)+Pir(poverty income ratio).
+
+The regression table is shown below.
+
+```{r q2_c_table}
+cap= '**The Logistic Regression table of the Final Model** '
+
+var=c('Age, in month', 'Black', 'Poverty Income Ratio', 'Intercept')
+est= c(0.0713747,0.4949803,-0.1190729,-8.460287 )
+se=c(0.0027063,0.1489242, 0.045378, 0.3510302)
+z=c(26.37,3.32,-2.62,-24.10 )
+pval=c(0.000,0.001,0.009,0.000)
+lwr=c(0.0660704,0.2030943,-.2080121,-9.148294)
+upr=c(0.0766789,0.7868664,-0.0301337, -7.772281)
+
+tibble(
+  `Variables`=var,`Estimates`=est,
+  `Standard Errors`=se,
+  `Z Statistic` =z,
+  `P.value` = pval,
+  lwr=lwr,upr=upr)%>%
+  mutate(`95% CI` = sprintf('(%6s, %6s)',
+                     round(lwr,4),
+                     round(upr,4)))%>%
+  select(-lwr,-upr) %>%
+  knitr::kable(align = 'r',cap=cap,digits=4)
+```
+
+**The fitting process** is: 
+    
+The response variable is the probability of individuals losing primary right 2nd bicuspid.
+
+And the smaller the BIC is, the better the model is.
+
+
+First, we have the logistic regression between the Probability and Age(in month), which is our base model, and call it Model(Age). The BIC of this model is 1533.4068.
+
+Second, we add the categorical variable, Gender, using the 'Female' as the reference, and call this Model(Age+Gender). The BIC of this model is 1542.0548, which is larger than the BIC of Model(Age). So we drop Gender, and still have the Model(Age).
+
+Next, we create indicators of each race using the level 'White' as the reference, which is the largest group in race. Then we create indicators Black, Mexican, and Other.
+      
+      First, we add the indicator Black, which represents the second largest group of race, 
+      into our model, then we have Model(Age+Black), and the BIC of this model is 1529.2805. 
+      Compared to the Model(Age), the BIC gets better, So we retain Black.
+      
+      Then, we add the indicator Mexican, the third largest group of race, into our model, 
+      then we have Model(Age+Black+Mexican), and the BIC of this model is 1533.1035. 
+      Compared to the Model(Age+Black), we drop Mexican.
+      
+      Last, we add the indicator Other, the smallest group of race, into our model, 
+      then we have Model(Age+Black+Other), and the BIC of this model is 1536.1033. 
+      Compared to the Model(Age+Black), we drop Other.
+      
+      In final, we have the Model(Age+Black).
+
+Finally, we add the Poverty Income Ratio into our model, and it becomes the Model(Age+Black+Pir). Compared to the Model(Age+Black), BIC is better, which is 1462.8945. 
+
+So our final model is Model(Age+Black+Pir).
+    
+### Part d
+
+#### (1) 
+
+The adjusted predictions at the mean at each of the representative ages can be shown in the table and figure below.
+
+```{r q2_d_table1}
+cap= '**Adjusted Predictions at the Mean at each of the Representative Ages** '
+
+
+age=c(8,9,10,11,12)
+est= c(0.145906, 0.2868807,0.4864818,0.6904898,0.8400911)
+se=c(0.0127616,0.0166531,0.0174419,0.0154591,0.0117878)
+z=c(11.43,17.23,27.89,44.67,71.27)
+pval=c(0.000,0.000,0.000,0.000,0.000)
+lwr=c(0.1208938,0.2542412,0.4522963,0.6601904,0.8169874)
+upr=c(0.1709183,0.3195202,0.5206673,0.7207892,0.8631948)      
+
+table1= tibble(
+  `Age, in year`=age,`Estimates`=est,
+  `Standard Errors`=se,
+  `Z Statistic` =z,
+  `P.value` = pval,
+  lwr=lwr,upr=upr) %>%
+  mutate(`95% CI` = sprintf('(%6s, %6s)',
+                            round(lwr,4),
+                            round(upr,4)))
+table1%>%
+  select(-lwr,-upr) %>%
+  knitr::kable(align = 'r',cap=cap,digits=4)
+          
+
+```
+
+\pagebreak
+
+```{r q2_d_figure1, fig.cap = cap}
+cap = 'Adjusted Predictions(95%CI) at the Means at Each of the Representative Ages'
+table1 %>% 
+  ggplot( aes(x = `Age, in year`, y = `Estimates`) ) +
+  geom_point() +
+  geom_errorbar( aes(ymin = lwr, ymax = upr)) +
+  coord_flip() +
+  theme_bw() +
+  ylab('Adjusted Prediction at means') +
+  xlab('Representative Ages, in year')
+
+```
+
+#### (2) 
+
+The marginal effects at the means of black at each of the representative ages can be shown in the table and figure below.
+
+```{r q2_d_table2}
+cap= '**Marginal Effects at the Mean of Black at each of the Representative Ages** '
+
+age=c(8,9,10,11,12)
+est= c(0.066838,0.1056674,0.1230124,0.1008256,0.0616343)
+se=c(0.0216773,0.0327752,0.0365343,0.0289855,0.0175143)
+z=c(3.08,3.22,3.37,3.48,3.52)
+pval=c(0.002,0.001,0.001,0.001,0.000)
+lwr=c(0.0243512,0.0414291,0.0514066,0.0440151,0.0273068)
+upr=c(0.1093247,0.1699056,0.1946183,0.157636,.0959618)      
+
+table2=tibble(
+  `Age, in year`=age,`Estimates`=est,
+  `Standard Errors`=se,
+  `Z Statistic` =z,
+  `P.value` = pval,
+  lwr=lwr,upr=upr) %>%
+  mutate(`95% CI` = sprintf('(%6s, %6s)',
+                            round(lwr,4),
+                            round(upr,4)))
+table2 %>%
+  select(-lwr,-upr) %>%
+  knitr::kable(align = 'r',cap=cap,digits=4)
+```
+
+\pagebreak
+
+```{r q2_d_figure2, fig.cap = cap}
+cap = 'Marginal Effects at the Mean of Black at each of the Representative Ages'
+table2 %>% 
+  ggplot( aes(x = `Age, in year`, y = `Estimates`) ) +
+  geom_point() +
+  geom_errorbar( aes(ymin = lwr, ymax = upr)) +
+  coord_flip() +
+  theme_bw() +
+  ylab('Adjusted Prediction at means') +
+  xlab('Representative Ages, in year')
+
+```
+
+
+#### (3) 
+
+The average marginal effects of black at each of the representative ages can be shown in the table and figure below.
+
+```{r q2_d_table3}
+cap= '**Average Marginal Effects at the Mean of Black at each of the Representative Ages** '
+
+age=c(8,9,10,11,12)
+est= c(0.0670636,0.1051526,0.1219341,0.1003884,0.061892)
+se=c(0.0216958,0.032627,0.0363007,0.028907,0.0175782)
+z=c(3.09,3.22,3.36,3.47,3.52)
+pval=c(0.002,0.001,0.001,0.001,0.000)
+lwr=c(0.0245406,0.0412049,0.0507861,0.0437318,0.0274394)
+upr=c(0.1095867,0.1691004,0.1930821,0.157045, 0.0963445)      
+
+table3=tibble(
+  `Age, in year`=age,`Estimates`=est,
+  `Standard Errors`=se,
+  `Z Statistic` =z,
+  `P.value` = pval,
+  lwr=lwr,upr=upr) %>%
+  mutate(`95% CI` = sprintf('(%6s, %6s)',
+                            round(lwr,4),
+                            round(upr,4)))
+table3 %>% 
+  select(-lwr,-upr) %>%
+  knitr::kable(align = 'r',cap=cap,digits=4)
+```
+
+\pagebreak
+
+```{r q2_d_figure3, fig.cap = cap}
+cap = 'Average Marginal Effects at the Mean of Black at each of the Representative Ages'
+table3 %>% 
+  ggplot( aes(x = `Age, in year`, y = `Estimates`) ) +
+  geom_point() +
+  geom_errorbar( aes(ymin = lwr, ymax = upr)) +
+  coord_flip() +
+  theme_bw() +
+  ylab('Adjusted Prediction at means') +
+  xlab('Representative Ages, in year')
+
+```
+
+
+### Part e
+
+The refit regression table is shown as below.
+
+```{r q2_e_table}
+cap= '**The Logistic Regression table of the Model in Survey Design** '
+
+var=c('Age, in month', 'Black', 'Poverty Income Ratio', 'Intercept')
+est= c(0.061941,0.5434941,-0.0811815,-7.516015 )
+se=c(0.0072296,0.1461948,0.0521922,0.8615597)
+z=c(8.57,3.72,-1.56,-8.72)
+pval=c(0.000,0.002,0.141,0.000)
+lwr=c(0.0465314,0.2318871,-0.1924264, -9.352386)
+upr=c(0.0773506, 0.855101,0.0300635,-5.679644)
+
+tibble(
+  `Variables`=var,`Estimates`=est,
+  `Linearized Standard Errors`=se,
+  `Z Statistic` =z,
+  `P.value` = pval,
+  lwr=lwr,upr=upr)%>%
+  mutate(`95% CI` = sprintf('(%6s, %6s)',
+                     round(lwr,4),
+                     round(upr,4)))%>%
+  select(-lwr,-upr) %>%
+  knitr::kable(align = 'r',cap=cap,digits=4)
+```
+
+When the sample design is changed, and the estimated of coefficients are also changed. In the final model of part c, the estimates of Age, Black, PIR, Intercept is (0.0714, 0.4950, -0.1191, -8.4603), while the estimates in this model is (0.0619,0.5435,-0.0812,-7.5160)
+
+The p-value of the variable 'pir (poverty income ratio)' in the final model of part c is 0.009, which indicates that 'pir' is an extremely significant predictor in that model. But in this model, the p-value of 'pir' becomes much larger, which is 0.141. So the variable pir is not significant in this model. 
+
+And the standard error of the intercept in this model is 0.8616, which is significantly larger than that of the final model of part c, which is 0.3510.
+
+\pagebreak
+
+
+## Question 3
+
+```{r q3_source,include=FALSE}
+source('ps2_q3.R')
+```
+
+### Part a
+
+In R, I used "sasxport", which is in the package "Hmisc", to read the data sets.
+
+### Part b
+
+Aim: Fit the logistic regression to estimate the relationship between age and the probablity of individuals lose their primary upper right 2nd bicusppid.
+
+The BIC of this regression fit is `r BIC(fit_age)`.
+
+The regression table is shown below. 
+
+
+```{r q3_b_table}
+cap='**The Logistic regression between the Probability of losing Primary right 2nd bicuspid and Age(in months)** '
+
+broom::tidy(fit_age) %>%
+  mutate(`BIC` = BIC(fit_age),
+         `Parameters`=c('Intercept', 'Age')) %>%
+  select(`Parameters`,
+         `Estimate`=estimate,
+         `Standard Errors`=std.error,
+         `Z Statistic` = statistic,
+         `p.value` = p.value, `BIC`) %>%
+  knitr::kable( align  = 'r', cap = cap,digits=4)
+```
+
+Using this regression model, the estimated ages (in month) at 25%, 50%, and 75% of individuals losing their primary upper right 2nd bicuspid is `r age_et`.
+
+And the range of representative age (in year) values with one year increments is `r age_rg`.
+
+### Part c
+
+The final model is the logistic regression between the probability and Age(in month)+Black(categorical)+Pir(poverty income ratio).
+
+```{r q3_c_table1}
+cap='**The Logistic regression between the Probability of losing Primary right 2nd bicuspid and Age(in months) + Black + Poverty Income Ratio** '
+broom::tidy(fit_fl) %>%
+  mutate(`BIC` = BIC(fit_fl),
+         `Parameters`=c('Intercept', 'Age',
+                        'Black', 'Poverty Income Ratio')) %>%
+  select(`Parameters`,
+         `Estimate`=estimate,
+         `Standard Errors`=std.error,
+         `Z Statistic` = statistic,
+         `p.value` = p.value, `BIC`) %>%
+  knitr::kable( align  = 'l', cap = cap,digits=4)
+```
+
+**The fitting process** is: 
+    
+The response variable is the probability of individuals losing primary right 2nd bicuspid.
+
+And the smaller the BIC is, the better the model is.
+
+First, we have the logistic regression between the Probability and Age(in month), which is our base model, and call it Model(Age). The BIC of this model is `r BIC(fit_age)`.
+
+Second, we add the categorical variable, Gender, using the 'Female' as the reference, and call this Model(Age+Gender). The BIC of this model is `r BIC(fit_gd)`, which is larger than the BIC of Model(Age). So we drop Gender, and still have the Model(Age).
+
+Next, we create indicators of each race using the level 'White' as the reference, which is the largest group in race. Then we create indicators Black, Mexican, and Other.
+      
+      First, we add the indicator Black, which represents the second largest group of race, 
+      into our model, then we have Model(Age+Black), and the BIC of this model is `r BIC(fit_rc_1)`. 
+      Compared to the Model(Age), the BIC gets better, So we retain Black.
+      
+      Then, we add the indicator Mexican, the third largest group of race, into our model, 
+      then we have Model(Age+Black+Mexican), and the BIC of this model is `r BIC(fit_rc_2)`. 
+      Compared to the Model(Age+Black), we drop Mexican.
+      
+      Last, we add the indicator Other, the smallest group of race, into our model, 
+      then we have Model(Age+Black+Other), and the BIC of this model is `r BIC(fit_rc_3)`. 
+      Compared to the Model(Age+Black), we drop Other.
+      
+      In final, we have the Model(Age+Black).
+
+Finally, we add the Poverty Income Ratio into our model, and it becomes the Model(Age+Black+Pir). Compared to the Model(Age+Black), BIC is better, which is `r BIC(fit_pir)`. 
+
+So our final model is Model(Age+Black+Pir).
+
+And the process can shown as the table below.
+    
+```{r q3_c_table2}
+cap='**The Models in fitting process and their BIC**'
+tibble(`Models`=c('Age','Age+Gender',
+                'Age+Black','Age+Black+Mexican',
+                'Age+Black+Other','Age+Black+PIR'),
+       `BIC`=c(BIC(fit_age),BIC(fit_gd),BIC(fit_rc_1),
+               BIC(fit_rc_2),BIC(fit_rc_3),
+               BIC(fit_pir))) %>%
+  knitr::kable( align  = 'l', cap = cap,digits=4)
+
+```
+
+
+### Part d
+
+#### (1) 
+
+The adjusted predictions and 95%CI at the mean at each of the representative ages can be shown in the table and figure below.
+
+```{r q3_d_1}
+cap='**Adjusted Predictions(95%CI) at the Means at Each of the Representative Ages** '
+
+adj_at_mean %>%
+  transmute(
+    `Representative Ages, in year` = age,
+    `Adjusted Prediction at the Mean (95% CI)`= 
+              sprintf('%s, (%6s, %6s)', round(fit,6), 
+                          round(lwr,6), round(upr,6))) %>%
+  knitr::kable( align  = 'r', cap = cap)
+```
+
+
+\pagebreak
+
+
+```{r q3_d_figure1, fig.cap = cap}
+cap = 'Adjusted Predictions(95%CI) at the Means at Each of the Representative Ages'
+adj_at_mean %>% 
+  ggplot( aes(x = age, y = fit) ) +
+  geom_point() +
+  geom_errorbar( aes(ymin = lwr, ymax = upr)) +
+  coord_flip() +
+  theme_bw() +
+  ylab('Adjusted Prediction at means') +
+  xlab('Representative Ages, in year')
+```
+
+#### (2) 
+
+The marginal effects at the means of black at each of the representative ages can be shown in the table and figure below.
+
+```{r q3_d_2_table}
+cap='**Marginal Effects at the Means of Black at Each of the Representative Ages** '
+
+mg_at_mean %>%
+  transmute(
+    `Representative Ages, in year` = age,
+    `Mariginal effects at the Means of Black`=round(diff,6)
+              ) %>%
+  knitr::kable( align  = 'r', cap = cap)
+```
+
+
+\pagebreak
+
+
+```{r q3_d_figure2, fig.cap = cap}
+cap = 'Marginal Effects at the Means of Black at Each of the Representative Ages'
+
+mg_at_mean %>% 
+  ggplot( aes( x = age, y = diff) ) +
+  geom_col( fill = 'purple' ) +
+  theme_bw() +
+  ylab('Marginal Effects at the Means of Black') +
+  xlab('Representative Ages, in year') +
+  theme( axis.text.x = element_text(size = 8, angle = 90))
+```
+
+#### (3) 
+
+The average marginal effects of black at each of the representative ages can be shown in the table and figure below.
+
+```{r q3_d_3_table}
+cap='**Average Marginal Effects of Black at Each of the Representative Ages** '
+
+mg_avg %>%
+  transmute(
+    `Representative Ages, in year` = age,
+    `Average Mariginal effects at the of Black`=round(diff,6)
+              ) %>%
+  knitr::kable( align  = 'r', cap = cap)
+```
+
+```{r q3_d_figure3, fig.cap = cap}
+cap = 'Average Marginal Effects of Black at Each of the Representative Ages'
+
+mg_avg %>% 
+  ggplot( aes( x = age, y = diff) ) +
+  geom_col( fill = 'purple' ) +
+  theme_bw() +
+  ylab('Average Marginal Effects of Black') +
+  xlab('Representative Ages, in year') +
+  theme( axis.text.x = element_text(size = 8, angle = 90))
+```
