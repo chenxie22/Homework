@@ -1,0 +1,217 @@
+---
+title: "Stats 506, F18, Problem Set 1"
+author: "Chen Xie, chenxie@umich.edu"
+date: "`r format.Date(Sys.Date(), '%B %d, %Y')`"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+# ‘setup' chunk
+# 80: --------------------------------------------------------------------------
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+## Question 1
+
+
+### Part A
+
+ i. 
+   ```
+   cat recs2015_public_v3.csv |awk -F, '{if($2~/3/) {print $2}}' |wc -l
+   ```
+    ```
+    Result:
+    2010
+    ```
+    
+    There are 2010 rows for region 3 in the RECS 2015 data set.
+ 
+ ii.
+    ```
+    cat recs2015_public_v3.csv | cut -d, -f 1,475-571>recs_15_sub.csv
+    ```
+    The compressed data set is shown in the file "recs_15_sub.csv".
+
+### Part B
+
+ i. 
+    ```
+    for i in 1 2 3 4
+    do
+    cat recs2015_public_v3.csv |
+      awk -F, '{if($2~/'$i'/) {print $2}}' |wc -l
+    done
+    ```
+    ```
+    Result:
+    794
+    1327
+    2010
+    1555
+    ```
+    The observations for region 1, 2, 3, 4 are 794, 1327, 2010, 15555, respectively.
+ 
+ ii. 
+    ```
+    cat recs2015_public_v3.csv |
+      awk -F, 'NR==1{print$2 $3};NR > 1{print $2 $3|"sort -V"}' |
+      uniq>region_division.txt
+    ```
+    The unique combinations of values from RECIONC and DIVISION are ("1""1", "1""2", "2""3", "2""4", "3""5", "3""6", "3""7", "4""8", "4""9",         "4""10"). The result is written in the file "region_division.txt".
+
+\pagebreak
+
+## Question 2
+
+
+### Part a
+```{r q2_a,message=FALSE}
+source('ps1_q2.R')
+cap_title='**Q2_part_a.** *The Airlines* that were responsible for at least 1% of the flights departing any of the three NYC airports between Jan 1st and Oct 1st, 2013.'
+cap_text1='Rows are sorted by the percent of flights.'
+cap=paste(cap_title,cap_text1)
+cols=c('Airlines','Percent(%)')
+knitr::kable(airlines_a, digits=3,caption=cap,col.names = cols)
+```
+
+\pagebreak
+
+### Part b
+
+```{r q2_b1,  message=FALSE, warning=FALSE}
+cols=c("Airlines",
+       "Number","Percent","lower ci(%)","upper ci(%)")
+knitr::kable(airlines_b[,c(1,2:5)],
+             caption='Number and Percent with CI in 2013',
+             digits=2,booktabs=T,col.names = cols) 
+```
+
+  The Table 2 is the table of number and percents (%) with 95% CI of annual flights in the first 10 months of 2013.
+
+```{r q2_b2,  message=FALSE, warning=FALSE}
+cols=c("Airlines",
+       "Number","Percent","lower ci(%)","upper ci(%)")
+knitr::kable(airlines_b[,c(1,6:9)],
+             caption='Number and Percent with CI in 2014',
+             digits=2,booktabs=T,col.names = cols) 
+```
+
+  The Table 3 is the table of number and percents (%) with 95% CI of annual flights in the first 10 months 2014.
+  
+\pagebreak
+
+```{r q2_b3, message=FALSE,warning=FALSE}
+cols=c('Airlines', 'Change in Number','Change in Percent(%)',
+       'lower ci(%)','upper ci(%)')
+knitr::kable(airlines_b[,c(1,10:13)],
+             caption='Change in Number and Percent between 2013 and 2014',
+             digits=2,booktabs=T,col.names = cols) 
+```
+
+  The Table 4 is the table of changes in numbers between 2013 and 2014, as well as change in percent (%) with 95% CI.
+
+  It seems that Southwest Airlines has the largest increase in number, and ExpressJet Airlines has the largest decrease in number. And Delta Airlines shows the largest increase in percent, while Envoy Air shows the largest decrease in percent.
+The values for Endeavo Air for 2014 is missing.
+
+  Some airlines show an increase in the percent of flights but a decrease in the number, like United Airlines, American Airlines, US Airways, and JetBule Airways. As the total number of flights decrease more than the number decrease of these airlines. 
+
+\pagebreak
+
+### Part c
+
+```{r q2_c1,message=FALSE}
+knitr::kable(airports_sp_13[,1:9],
+             caption='Percent of Flights Part 1',
+             digits=2,booktabs=T) 
+knitr::kable(airports_sp_13[,c(1,10:17)],
+             caption='Percent of Flights Part 2',
+             digits=2,booktabs=T) 
+```
+
+The Table 5 and 6 are the tables showing the percent (%) of flights each airlines is responsible for each of the airports in 2013. For showing precisely, I use abbreviation for airports names and airlines names. 
+
+\pagebreak
+
+```{r q2_c2,message=FALSE}
+cols=c('Airports','Airlines','Percent(%)','lower ci(%)','upper ci(%)')
+knitr::kable(airports_lmt_13[,c(2,3,5,7,8)],col.names = cols,
+             caption='Percent of Flights with CI',
+             digits=2,"latex",booktabs=T,longtable=T) %>%
+  kableExtra::kable_styling(latex_options = c("striped"))
+```
+
+
+The Table 7 the table limited to the airlines in part a, showing that the percent (%) with 95% CI of flights each airline for each NYC airport.
+
+```{r q2_c3,message=FALSE}
+cols=c('Airports','Airlines','Percent(%)','lower ci(%)','upper ci(%)')
+knitr::kable(airports_max_13[,c(2,3,5,7,8)],col.names = cols,
+             caption='Largest Carrier',
+             digits=2,"latex",booktabs=T,longtable=T) %>%
+  kableExtra::kable_styling(latex_options = c("striped"))
+```
+
+The Table 8 is the table showing the largest carries at each NYC airport. For the airport Newark Liberty Intl, United Aialines is the largest carrier, while for John F kennedy Intl, the largest is JetBlue Airways, and for La Guardia, it is Delta Airlines.
+
+\pagebreak
+
+## Question 3
+
+
+### Part a
+
+The Table 9 is the table showing estimated percent and BRR se of homes have stucco as the major wall material for each division. The division Mountain South has the highest proportion, and the division East South Central has the lowest proportion.
+
+```{r q3_a,message=FALSE}
+source('ps1_q3.R',echo=FALSE)
+cols=c('Divison','Proportion of stucco(%)','BRR se')
+knitr::kable(wall_div_prop[,c(1,4,5)],
+             caption='Proportion of Stucco for each Divison with BRRse',
+             digits=4,"latex",booktabs=T,longtable=T,
+             col.names = cols) %>%
+  kableExtra::kable_styling(latex_options = c("striped"))
+```
+
+
+### Part b
+
+The Table 10 is the table showing estimated average and BRR se of total electricity usage in kilowatt in each division.
+
+```{r q3_b1,message=FALSE}
+cols=c('Divison','Average eleltricity usage (kw)','BRR se')
+knitr::kable(elec_div_avg,
+             caption='Average Electricity Usage for each Divison with BRRse',
+             digits=2,"latex",booktabs=T,longtable=T,
+             col.names = cols) %>%
+  kableExtra::kable_styling(latex_options = c("striped"))
+
+```
+
+The Table 11 is the table showing estimated average and BRR se of total electricity usage in kilowatt for each urban type.
+
+```{r q3_b2,message=FALSE}
+cols=c('Urbantype','Average eleltricity usage (kw)','BRR se')
+knitr::kable(elec_urban_avg,
+             caption='Average Electricity Usage for Urban and Rural with BRRse',
+             digits=2,"latex",booktabs=T,longtable=T,
+             col.names = cols) %>%
+  kableExtra::kable_styling(latex_options = c("striped"))
+```
+
+
+### Part c
+
+The Table 12 is the table showing estimates and BRR se of disparity between urban and rural areas of the proportion of homes with internet access for each division.
+The Division Mountain South has the largest diaparity in proportion.
+
+```{r q3_c,message=FALSE}
+cols=c('Division','Disparity of the proportion(%)','BRR se')
+caps='Disparity of Proportion in Internet access between Urban and Rural for each Division with BRRse'
+knitr::kable(int_div_prop_diff[,c(1,4,5)],
+             caption=caps,
+             digits=2,"latex",booktabs=T,longtable=T,
+             col.names = cols) %>%
+  kableExtra::kable_styling(latex_options = c("striped"))
+```
+
