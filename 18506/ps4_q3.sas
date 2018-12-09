@@ -1,7 +1,7 @@
+
 /*****************************************************
 Problem Set 4, Question 3  
 Stats 506, Fall 2018
-
 Author: Chen Xie chenxie@umich.edu
  *****************************************************
 */
@@ -39,7 +39,7 @@ DATA Medicare_PS_PUF;
 		average_submitted_chrg_amt  		8
 		average_Medicare_payment_amt   		8
 		average_Medicare_standard_amt		8;
-	INFILE '~\data\Medicare_Provider_Util_Payment_PUF_CY2016.txt'
+	INFILE 'Z:\Desktop\2018FALL\stat506\stats506PS4_ChenXie\data\Medicare_Provider_Util_Payment_PUF_CY2016.txt'
 
 		lrecl=32767
 		dlm='09'x
@@ -104,45 +104,105 @@ DATA Medicare_PS_PUF;
 		average_Medicare_standard_amt		= "Average Medicare Standardized Payment Amount";
 RUN;
 
-
 /*** Part b ***/
 
 /* Subsetting: */
-data reduce;
+data reduce_b;
 set Medicare_PS_PUF;
-where hcpcs_description like "%MRI%" and hcpcs_code like '7%' ;
+where hcpcs_description like '%MRI%' and hcpcs_code like '7%' ;
 run;
 
 
 /*** Part c ***/
 
+/* Prepare for computing: */
+data reduce_c;
+ set reduce_b;
+ payment=line_srvc_cnt*average_Medicare_payment_amt;
+ keep hcpcs_description  line_srvc_cnt payment ;
+
+ /* Sort: */
+ proc sort data=reduce_c; 
+ by hcpcs_description;
+
+/* Compute sum of volumn, payment: */
+proc summary data=reduce_c;
+ by hcpcs_description;
+ output out=totals
+        sum(line_srvc_cnt) = volumn
+        sum(payment) = total_payment;
+
+/* Compute average payment: */
+data q3c;
+set totals;
+average_payment=total_payment/volumn;
+keep hcpcs_description volumn total_payment average_payment;
+
+/* Get the highest values */
+proc  sort data=q3c;
+by DESCENDING volumn;
+
+data q3c_volumn;
+set q3c(obs=1);
+
+proc  sort data=q3c;
+by DESCENDING total_payment;
+
+data q3c_total;
+set q3c(obs=1);
+
+proc  sort data=q3c;
+by DESCENDING average_payment;
+
+data q3c_average;
+set q3c(obs=1);
+
+/* Merge the highest values: */
+data q3c_max;
+merge q3c_volumn q3c_total q3c_average;
+by  hcpcs_description;
+run;
+
 
 /*** Part d ***/
 proc sql;
 
-  /* Count total homes by state */
+  /* Compute sum of volumn, payment, and average payment: */
   create table q3d as
-    select sum(line_srvc_cnt) as volumn, 
+    select hcpcs_description, hcpcs_code,
+		   sum(line_srvc_cnt) as volumn, 
            sum(line_srvc_cnt*average_Medicare_payment_amt) as total_payment,
-	   total_payment/volumn as average_payment
+           sum(line_srvc_cnt*average_Medicare_payment_amt)/sum(line_srvc_cnt) 
+           as average_payment
       from Medicare_PS_PUF
-      where hcpcs_description like "%MRI%" and hcpcs_code like '7%'
-      group by hcpcs-cd
-      having ;
+	  /*Subsetting */
+	  where hcpcs_description like '%MRI%' and hcpcs_code like '7%'
+      group by hcpcs_description,hcpcs_code;
+ 
+ /* Determine the highest values: */
+  create table q3d_max as
+  select *
+  from q3d
+  having volumn = max(volumn) or 
+         total_payment = max(total_payment) or 
+         average_payment = max(average_payment) ;
 
   quit;
+ 
   
 /*** Part e ***/
 
+
 /* Export to csv: */
-proc export data=q3c
-  outfile = 'ps4_q3c.csv'
+proc export data=q3c_max
+  outfile = 'Z:\Desktop\2018FALL\stat506\stats506PS4_ChenXie\ps4_q3c.csv'
   dbms=dlm replace; 
   delimiter  = ",";
 
-proc export data=q3d
-  outfile = 'ps4_q3d.csv'
+proc export data=q3d_max
+  outfile = 'Z:\Desktop\2018FALL\stat506\stats506PS4_ChenXie\ps4_q3d.csv'
   dbms=dlm replace; 
   delimiter  = ",";
 
-run; 
+run;
+
