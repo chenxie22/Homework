@@ -1,0 +1,373 @@
+---
+title: "Stats 506, F18, Problem Set 3"
+author: "Chen Xie, chenxie@umich.edu"
+date: "`r format.Date(Sys.Date(), '%B %d, %Y')`"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+## Question 1
+
+
+### Part a
+
+```{r q1_source, message = FALSE}
+source('./ps3_q1.R')
+```
+
+The percent of homes have stucco construction as the major outside wall material within each division is shown in the table 1 and figure 1 below.
+
+
+```{r q1a_table1}
+cap = '*Proportion of homes with stucco construction within each census division in 2015. Estimates are based on the residential energy consumption survey.*'
+
+p_ci_stucco[,.(`Census Division` = division,
+             `% Stucco Homes (95% CI)` =
+               sprintf('%4.1f%% (%4.1f, %4.1f)',
+                       100*p_stucco, 100*lwr, 100*upr))]%>%
+  knitr::kable( align = 'r', caption = cap)
+```
+
+
+From this table, we can know that the division 'Mountain South' has the highest proportion, and 'East South Central' has the lowest proportion.
+
+
+```{r q1a_figure1, fig.cap = cap}
+library(ggplot2)
+cap = 'Estimated percent of homes within each census division with major wall type of stucco.'
+
+p_ci_stucco[, `:=`(Division = 
+                     factor( as.character(division), 
+                             as.character(division)))] %>%
+
+  ggplot( aes( x = Division, y = 100*p_stucco) ) +
+  geom_col( fill = 'navy' ) +
+  geom_errorbar( aes( ymin = 100*lwr, ymax = 100*upr), 
+                  col = 'darkslategrey') +
+  theme_bw() +
+  ylab('% Stucco Homes') +
+  xlab('Census Division') +
+  theme( axis.text.x = element_text(size = 8, angle = 90))
+
+```
+
+
+\pagebreak
+
+
+### Part b
+
+The average total electricity usage in kilowatt hours in each division is shown in the table 2 and figure 2 below. 
+```{r q1b_table1}
+cap = '*Average annual electricity utilization by Census Division in kwh/home.*'
+
+# Pretty printing
+pwc = function(x) format(round(x), big.mark = ',')
+
+avg_ci_kwh[,
+    .(`Census Division` = division,
+    `Average Electricity Usage, kwh/home (95% CI)` = 
+     sprintf('%s, (%s - %s)', 
+             pwc(avg_kwh), pwc(lwr), pwc(upr) ))] %>%
+  knitr::kable( align = 'r', caption = cap)
+
+```
+
+
+\pagebreak
+
+
+```{r q1b_figure1, fig.cap = cap}
+cap = 'Estimated average annual electricity usage in khw/home for each of 10 census divisions.'
+avg_ci_kwh[, `:=`(Division = 
+                     factor( as.character(division), 
+                             as.character(division)))] %>%
+  ggplot( aes(x = Division, y = avg_kwh) ) +
+  geom_point() +
+  geom_errorbar( aes(ymin = lwr, ymax = upr)) +
+  coord_flip() +
+  theme_bw() +
+  ylab('kwh/home') +
+  xlab('')
+
+```
+
+
+The average total electricity usage in kilowatt hours in each division for urban and rural is shown in the table 3 and figure 3 below.
+ 
+ 
+```{r q1b_table2}
+cap = '*Average electricity utilization in kwh per home for urban and rural areas witihin each census division.*'
+
+avg_ci_urban[, .(`Census Division` = division,
+                 ci= sprintf('%s, (%6s - %6s)', 
+                             pwc(avg_kwh ), pwc(lwr), pwc(upr)),
+                 Rurality = ifelse(urban=='Urban', 
+                                   'Urban, kwh/home (95% CI)', 
+                                   'Rural, kwh/home (95% CI)'))] %>%
+  dcast(., `Census Division` ~ Rurality, value.var = 'ci') %>%
+  .[order(-`Rural, kwh/home (95% CI)`)] %>%
+  knitr::kable( align  = 'r', cap = cap)
+
+```
+
+
+\pagebreak
+
+
+```{r q1b_figure2, fig.cap = cap}
+cap = 'Estimated average annual electricity usage in khw/home for rural and urban areas in each of 10 census divisions.'
+
+avg_ci_urban [,`:=`(Rurality = urban)] %>%
+  ggplot( aes(x = division, y = avg_kwh, color = Rurality) ) +
+  geom_point( position = position_dodge(.5) ) +
+  geom_errorbar( aes(ymin = lwr, ymax = upr),
+                 position = position_dodge(.5)
+  ) +
+  scale_color_manual( values = c('navy', 'darkred')[2:1]) +
+  coord_flip() +
+  theme_bw() +
+  ylab('kwh/home') +
+  xlab('')
+
+```
+
+
+### Part c
+
+The disparity between urban and rural in internet access within each division is shown in the table 4 and figure 4 below.
+
+The division 'Mountain South' has the largest disparity between urban and rural areas in terms of the proportion of homes with internet access.
+
+```{r q1c_table1}
+cap = "*Urban and rural disparity in internet access for the ten US Census Division in 2015.*"
+
+p_ci_int[, .(division = division,
+             urban=urban,
+             ci= sprintf('%4.1f%% (%4.1f, %4.1f)',
+                         p_it*100,lwr*100,upr*100)
+             )] %>%
+  dcast(., division ~ urban, value.var = 'ci') %>%
+  merge(.,p_ci_diff, by='division',all=TRUE) %>%
+  .[order(-p_diff)] %>%
+  .[,.(`Census Division` = division,
+       `Urban Internet Access, % (95% CI)`=Urban,
+       `Rural Internet Access, % (95% CI)`=Rural,
+       `Difference, % (95% CI)`=
+         sprintf('%4.1f%% (%4.1f, %4.1f)',
+                 p_diff*100,lwr*100,upr*100))] %>%
+  knitr::kable( align  = 'r', cap = cap)
+
+```
+
+
+\pagebreak
+
+
+```{r q1c_figure1, fig.cap = cap}
+cap = 'Urban and rural disparity in internet access for the ten US Census Division in 2015'
+
+p_ci_int [,`:=`(Rurality = urban)] %>%
+  ggplot( aes(x = division, y = p_it*100, fill = Rurality) ) +
+  geom_col( position = position_dodge() ) +
+  geom_errorbar( aes(ymin = lwr*100, ymax = upr*100), 
+                 position = position_dodge(),
+                 col = 'slategrey') +
+  theme_bw() + 
+  xlab('') +
+  ylab('% of homes with internet access') +
+  ylim(c(0, 100)) +
+  coord_flip() +
+  scale_fill_manual(values = c('darkred', 'navy'))
+
+```
+
+
+### Part d
+
+The average number of bedrooms for different type of housing units is shown in the table 5 and figure 5.
+
+We can find that the type 'Single-family detached house' will have most bedrooms.
+
+```{r  q1d_table1}
+cap = '*Average numbers of bedrooms for different type of housing units*'
+
+avg_ci_bed[,.(`Type of housing units` = type,
+              `Average numbers of bedrooms, (95% CI)` =  
+                sprintf('%s, (%s - %s)',round(avg_bed,3),
+                        round(lwr,3), round(upr,3)))] %>%
+  knitr::kable( align = 'r', caption = cap)
+
+```
+
+
+
+```{r q1d_figure1, fig.cap = cap}
+
+cap = 'Average numbers of bedrooms for different type of housing units'
+
+avg_ci_bed[, `:=`(Type= 
+                     factor( as.character(type), 
+                             as.character(type)))] %>%
+  ggplot( aes(x = Type, y = avg_bed) ) +
+  geom_point() +
+  geom_errorbar( aes(ymin = lwr, ymax = upr)) +
+  coord_flip() +
+  theme_bw() +
+  ylab('Average bedrooms') +
+  xlab('')
+```
+
+
+
+\pagebreak
+
+
+
+## Question 2
+
+```{r q2_source, message = FALSE,include=FALSE}
+source('./ps3_q2.R')
+```
+
+
+### Part a & b
+
+The function in Part a is called 'mc_pval'.
+
+I choose that  $\Sigma=I_{p \times p}$, $\Sigma$ is a $p \times p$ Identity matrix, and $\sigma = 10$.
+
+The estimates of parameters of between the function in Part a is the same as the result of R function lm().
+
+The estimates of parameters of X1 to X6 is shown in the talbe 6, torelance = 1e-3,
+
+```{r q2_table1}
+cap='*Compare estimates of parameters of X1 to X6 between the function in Part a and the R function lm(), tolerance=1e-3*'
+col=c('Pval of Part_a','Pval of lm()','Difference')
+
+cbind(head(pval_mc),head(pval_lm),
+      head(round(pval_mc-pval_lm,3))) %>%
+ knitr::kable( align = 'r', caption = cap,
+               col.names = col,digits =4)
+```
+
+
+
+
+### Part c & d & e
+
+The Monte Carlo estimates of the family wise error rate, the false discovery rate, the sensitivity, and the specificity of different types of adjusted p-values in multiple comparison are shown in the table 7 and figure 6.
+
+When p-value is not adjusted, the family wise error rate is extremely large, and the false discovery rate is large also. But the adjusted p-values can fix this problem in some levels, and also improve the specificity.
+
+```{r q2_table2}
+cap='Monte Carlo estimates of the family wise error rate, the false discovery rate, the sensitivity, and the specificity of different types of adjusted p-values in multiple comparison'
+col= c('','Family wise error rate', 'False discovery rate', 'Sensitivity', 'Specificity' )
+
+row=c('Unadjusted','Bonferroni', 'Holm',
+      'BH(Benjamini-Hochberg)', 'BY(Benjamini-Yekuteli)')
+
+cbind(row,round(table,4))%>%
+  knitr::kable( align = 'r', caption = cap, col.names = col)
+```
+
+
+
+
+```{r q2_figure1, fig.cap=cap}
+cap='Monte Carlo estimates of the family wise error rate, the false discovery rate, the sensitivity, and the specificity of different types of adjusted p-values in multiple comparison'
+
+group=c('Family wise error rate', 'False discovery rate', 'Sensitivity', 'Specificity' )
+row=c('Unadjusted','Bonferroni', 'Holm','BH', 'BY')
+
+data.frame(cbind(rep(row,4),as.vector(round(table,4)),
+                 rep(group,each=5)))%>%
+  ggplot(aes(x = X1,y=X2,group=X3,color=X3) ) +
+  geom_line() +
+  labs(x = 'Type of P-value', y = '',color = "Quantiles\n")
+
+```
+
+
+
+\pagebreak
+
+
+
+## Question 3
+
+
+```{r q3_source, message = FALSE,include=FALSE}
+source('./ps3_q3.R')
+
+```
+
+
+### Part a
+
+Computed by data.table, the table of univariate regression coefficients with groups is shown below.
+
+```{r q3a_table}
+cap='*The univariate regression coefficients with groups computed by data.table*'
+col=c('Number of cylinders(Group)','Beta of Displacement','Beta of Gross horsepower','Beta of Weight')
+
+beta_dt[,.(cyl,beta_cyl_disp,beta_cyl_hp,beta_cyl_wt)] %>%
+  knitr::kable( align = 'r', caption = cap,digits=4,col.names = col)
+
+```
+
+### Part b
+
+**beta_dt_fn** is the function for an arbitrary dependent, independent, and grouping varaibles.
+The results computed by **beta_dt_fn** is shown below. It matches the Part a.
+
+```{r q3b_table}
+cap='*The univariate regression coefficients with groups computed by a function computing by data.table*'
+col=c('Number of cylinders(Group)','Beta of Displacement','Beta of Gross horsepower','Beta of Weight')
+
+beta_dt_fn(mtcars,'disp','mpg','cyl') %>%
+  merge(.,beta_dt_fn(mtcars,'hp','mpg','cyl'),by='cyl') %>%
+  merge(.,beta_dt_fn(mtcars,'wt','mpg','cyl'),by='cyl') %>%
+  .[,.(cyl,beta_cyl_disp,beta_cyl_hp,beta_cyl_wt)] %>%
+  knitr::kable( align = 'r', caption = cap,digits=4,col.names = col)
+```
+
+### Part c
+
+Computed by dplyr summarize_at, the table of univariate regression coefficients with groups is shown below.
+
+```{r q3c_talbe}
+cap='*The univariate regression coefficients with groups computed by dplyr*'
+col=c('Number of cylinders(Group)','Beta of Displacement','Beta of Gross horsepower','Beta of Weight')
+
+beta_dplyr %>%
+  select(cyl,beta_cyl_disp,beta_cyl_hp,beta_cyl_wt) %>%
+  knitr::kable( align = 'r', caption = cap,digits=4,col.names = col)
+
+```
+
+
+
+\pagebreak
+
+
+### Part d
+
+**beta_dplyr_fn** is the function for an arbitrary dependent, independent, and grouping varaibles.
+The results computed by **beta_dplyr_fn** is shown below. It matches the Part c.
+
+```{r q3d_table}
+cap='*The univariate regression coefficients with groups computed by a function computing by data.table*'
+col=c('Number of cylinders(Group)','Beta of Displacement','Beta of Gross horsepower','Beta of Weight')
+
+beta_dplyr_fn(mtcars,disp,mpg,cyl) %>%
+  left_join(beta_dplyr_fn(mtcars,hp,mpg,cyl),by='cyl') %>%
+  left_join(beta_dplyr_fn(mtcars,wt,mpg,cyl),by='cyl') %>%
+  knitr::kable( align = 'r', caption = cap,digits=4,col.names = col)
+
+```
+
+
