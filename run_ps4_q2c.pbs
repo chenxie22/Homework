@@ -1,1 +1,36 @@
 
+#!/bin/sh
+##The name:
+#PBS -N P4Q2c
+
+##The queue that the job should be run in:
+#PBS -A stats_flux
+#PBS -l qos=flux
+#PBS -q flux
+
+##The number of nodes and processors:
+#PBS -l nodes=1:ppn=4
+
+## Per processor memory
+#PBS -l pmem=2Gb 
+
+## For job arrays:
+#PBS -t 1
+
+##This is the run time: 
+#PBS -l walltime=00:00:15
+
+##Where to go:
+#PBS -o /home/chenxie/hw/ps4_q2b.out
+#PBS -j oe
+
+##Import the shell's environment
+#PBS -V
+
+##In what circumstances:
+#PBS -m abe
+
+##Email:
+#PBS -M chenxie@umich.edu
+
+##code to be run
