@@ -15,7 +15,7 @@
 #PBS -l pmem=2Gb 
 
 ## For job arrays:
-#PBS -t 0
+#PBS -t 1
 
 ##This is the run time: 
 #PBS -l walltime=00:00:15
