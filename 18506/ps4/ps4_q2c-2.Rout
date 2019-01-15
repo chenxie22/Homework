@@ -1,0 +1,237 @@
+
+R version 3.3.3 (2017-03-06) -- "Another Canoe"
+Copyright (C) 2017 The R Foundation for Statistical Computing
+Platform: x86_64-pc-linux-gnu (64-bit)
+
+R is free software and comes with ABSOLUTELY NO WARRANTY.
+You are welcome to redistribute it under certain conditions.
+Type 'license()' or 'licence()' for distribution details.
+
+  Natural language support but running in an English locale
+
+R is a collaborative project with many contributors.
+Type 'contributors()' for more information and
+'citation()' on how to cite R or R packages in publications.
+
+Type 'demo()' for some demos, 'help()' for on-line help, or
+'help.start()' for an HTML browser interface to help.
+Type 'q()' to quit R.
+
+> ## Problem Set 4, Question 2 Part c
+> ## Stats 506, Fall 2018
+> ##
+> ## Author: Chen Xie chenxie@umich.edu
+> 
+> 
+> # Libraries:
+> library(future)
+> library(doParallel)
+Loading required package: foreach
+Loading required package: iterators
+Loading required package: parallel
+> 
+> # Source: 
+> source('/home/chenxie/hw/ps4_q2_funcs.R')
+> 
+> # Get command line arguments and assign as global variables
+> # Use to assign "n_cores" ,"mc_rep", and "sigma"
+> ca = commandArgs(trailingOnly = TRUE)
+> 
+> ind = grep('=', ca)  
+> 
+> args_list = strsplit(ca[ind], '=')
+> lapply(args_list,function(x) assign(x[1],as.numeric(x[2]),
++         envir=.GlobalEnv))
+[[1]]
+[1] 10000
+
+[[2]]
+[1] 8
+
+[[3]]
+[1] 0.5
+
+> 
+> # Parameters:
+> n = 1e3; p = 1e2; r = .1
+> beta = c( rep(0.1, floor(r*p)), rep(0, p - floor(r*p)) )
+> dim(beta)=c(p,1)
+> 
+> # Write function:
+> myFun=function(rho,sigma=1,mc_rep=1e4){
++   
++   # X ~ N(0, Sigma): 
++   Sigma = beta %*% t(beta) *rho
++   
++   # Make the diagonals of Sigma be 1:
++   diag(Sigma)=1
++   R = chol(Sigma)
++   
++   # Here is an X for testing: 
++   X = matrix( rnorm(n*p), n, p) %*%  R
++   
++   # Get the monte carlo p-value matrix:
++   P=pval_beta(X, beta,sigma=sigma, mc_rep=mc_rep)
++   
++   # Compute Monte Carlo estimate and se of metrics of 
++   # different multiple comparison methods:
++   result =
++     lapply( c('holm', 'bonferroni', 'BH', 'BY'), function(x){
++       evaluate( apply(P, 2, p.adjust, method = x), tp_ind = 1:10)
++     })
++   
++   # Return the result:
++   return(result)
++ }
+> 
+> # Cluster setup:
+> cl = makeCluster(n_cores)
+> registerDoParallel(cl)
+> 
+> # Parallel computations using `plan(multicore)`:
+> plan(multicore)
+> 
+> # Set seed:
+> set.seed(1022)
+> 
+> # Parallel computations using future:
+> results = list()
+> for( i in 1:7 ){
++   results [[i]]= future({myFun(rho=0.25*i-1,sigma=sigma,mc_rep=mc_rep)})
++ }
+> 
+> # Cluster close:
+> stopCluster(cl)
+> 
+> # Get the values:
+> results=matrix(unlist( lapply(results, value) ),nrow = 8,ncol=28)
+> est=c(results[c(1,3,5,7),]) ; se=c(results[c(2,4,6,8),])
+> 
+> # Create values of other columns:
+> rho=rep(0.25*c(-3:3),each=16)
+> sigmalist=rep(sigma,112)
+> method=rep(rep(c('holm', 'bonferroni', 'BH', 'BY'),each=4),7)
+> metric=rep(c('FWER', 'FDR', 'Sensitivity', 'Specificity'),28)
+> 
+> # Store the result into a data.frame: 
+> results_q4c = data.frame('rho'= rho, 'sigma'=sigmalist, 
++                          'metric'=metric, 'method'=method, 
++                          'est'=est,  'se'=se)
+> results_q4c
+      rho sigma      metric     method         est           se
+1   -0.75   0.5        FWER       holm 0.048200000 2.141886e-03
+2   -0.75   0.5         FDR       holm 0.013158690 6.657385e-04
+3   -0.75   0.5 Sensitivity       holm 0.321550000 1.547740e-03
+4   -0.75   0.5 Specificity       holm 0.999452222 2.461416e-05
+5   -0.75   0.5        FWER bonferroni 0.046800000 2.112102e-03
+6   -0.75   0.5         FDR bonferroni 0.012951706 6.662596e-04
+7   -0.75   0.5 Sensitivity bonferroni 0.318850000 1.532450e-03
+8   -0.75   0.5 Specificity bonferroni 0.999467778 2.429509e-05
+9   -0.75   0.5        FWER         BH 0.241700000 4.281134e-03
+10  -0.75   0.5         FDR         BH 0.044345627 8.768096e-04
+11  -0.75   0.5 Sensitivity         BH 0.506030000 2.055599e-03
+12  -0.75   0.5 Specificity         BH 0.996653333 6.667727e-05
+13  -0.75   0.5        FWER         BY 0.037400000 1.897399e-03
+14  -0.75   0.5         FDR         BY 0.008837897 5.102493e-04
+15  -0.75   0.5 Sensitivity         BY 0.282470000 1.867651e-03
+16  -0.75   0.5 Specificity         BY 0.999570000 2.216835e-05
+17  -0.50   0.5        FWER       holm 0.043000000 2.028571e-03
+18  -0.50   0.5         FDR       holm 0.012486627 6.751729e-04
+19  -0.50   0.5 Sensitivity       holm 0.311530000 1.538910e-03
+20  -0.50   0.5 Specificity       holm 0.999510000 2.340192e-05
+21  -0.50   0.5        FWER bonferroni 0.042200000 2.010452e-03
+22  -0.50   0.5         FDR bonferroni 0.012416508 6.771884e-04
+23  -0.50   0.5 Sensitivity bonferroni 0.308900000 1.522206e-03
+24  -0.50   0.5 Specificity bonferroni 0.999518889 2.320852e-05
+25  -0.50   0.5        FWER         BH 0.245200000 4.302057e-03
+26  -0.50   0.5         FDR         BH 0.045826855 9.076113e-04
+27  -0.50   0.5 Sensitivity         BH 0.496030000 2.055467e-03
+28  -0.50   0.5 Specificity         BH 0.996590000 6.706813e-05
+29  -0.50   0.5        FWER         BY 0.033300000 1.794188e-03
+30  -0.50   0.5         FDR         BY 0.008727341 5.594433e-04
+31  -0.50   0.5 Sensitivity         BY 0.268990000 1.853721e-03
+32  -0.50   0.5 Specificity         BY 0.999618889 2.082467e-05
+33  -0.25   0.5        FWER       holm 0.044300000 2.057608e-03
+34  -0.25   0.5         FDR       holm 0.012302103 6.466954e-04
+35  -0.25   0.5 Sensitivity       holm 0.314660000 1.494367e-03
+36  -0.25   0.5 Specificity       holm 0.999498889 2.348376e-05
+37  -0.25   0.5        FWER bonferroni 0.043200000 2.033071e-03
+38  -0.25   0.5         FDR bonferroni 0.012252341 6.536816e-04
+39  -0.25   0.5 Sensitivity bonferroni 0.311530000 1.478859e-03
+40  -0.25   0.5 Specificity bonferroni 0.999511111 2.321886e-05
+41  -0.25   0.5        FWER         BH 0.235000000 4.239988e-03
+42  -0.25   0.5         FDR         BH 0.043816177 8.778641e-04
+43  -0.25   0.5 Sensitivity         BH 0.499670000 1.993561e-03
+44  -0.25   0.5 Specificity         BH 0.996721111 6.622553e-05
+45  -0.25   0.5        FWER         BY 0.033700000 1.804558e-03
+46  -0.25   0.5         FDR         BY 0.008248571 5.028969e-04
+47  -0.25   0.5 Sensitivity         BY 0.271340000 1.807204e-03
+48  -0.25   0.5 Specificity         BY 0.999612222 2.110690e-05
+49   0.00   0.5        FWER       holm 0.043000000 2.028571e-03
+50   0.00   0.5         FDR       holm 0.012153492 6.617095e-04
+51   0.00   0.5 Sensitivity       holm 0.308150000 1.521279e-03
+52   0.00   0.5 Specificity       holm 0.999510000 2.345462e-05
+53   0.00   0.5        FWER bonferroni 0.042000000 2.005891e-03
+54   0.00   0.5         FDR bonferroni 0.012091468 6.643314e-04
+55   0.00   0.5 Sensitivity bonferroni 0.305450000 1.504379e-03
+56   0.00   0.5 Specificity bonferroni 0.999523333 2.305760e-05
+57   0.00   0.5        FWER         BH 0.235300000 4.241862e-03
+58   0.00   0.5         FDR         BH 0.044428835 8.929781e-04
+59   0.00   0.5 Sensitivity         BH 0.489200000 2.042389e-03
+60   0.00   0.5 Specificity         BH 0.996724444 6.606472e-05
+61   0.00   0.5        FWER         BY 0.030900000 1.730468e-03
+62   0.00   0.5         FDR         BY 0.007495714 4.844720e-04
+63   0.00   0.5 Sensitivity         BY 0.264550000 1.831493e-03
+64   0.00   0.5 Specificity         BY 0.999642222 2.047780e-05
+65   0.25   0.5        FWER       holm 0.044200000 2.055392e-03
+66   0.25   0.5         FDR       holm 0.011397825 5.881159e-04
+67   0.25   0.5 Sensitivity       holm 0.334680000 1.529498e-03
+68   0.25   0.5 Specificity       holm 0.999498889 2.353628e-05
+69   0.25   0.5        FWER bonferroni 0.043200000 2.033071e-03
+70   0.25   0.5         FDR bonferroni 0.011255920 5.872113e-04
+71   0.25   0.5 Sensitivity bonferroni 0.331620000 1.509187e-03
+72   0.25   0.5 Specificity bonferroni 0.999510000 2.329616e-05
+73   0.25   0.5        FWER         BH 0.245100000 4.301465e-03
+74   0.25   0.5         FDR         BH 0.043948747 8.569988e-04
+75   0.25   0.5 Sensitivity         BH 0.530040000 1.993077e-03
+76   0.25   0.5 Specificity         BH 0.996530000 6.894328e-05
+77   0.25   0.5        FWER         BY 0.036800000 1.882704e-03
+78   0.25   0.5         FDR         BY 0.008510462 4.985983e-04
+79   0.25   0.5 Sensitivity         BY 0.296740000 1.863085e-03
+80   0.25   0.5 Specificity         BY 0.999575556 2.209539e-05
+81   0.50   0.5        FWER       holm 0.044800000 2.068646e-03
+82   0.50   0.5         FDR       holm 0.012917937 6.756075e-04
+83   0.50   0.5 Sensitivity       holm 0.309550000 1.461435e-03
+84   0.50   0.5 Specificity       holm 0.999482222 2.445285e-05
+85   0.50   0.5        FWER bonferroni 0.043400000 2.037558e-03
+86   0.50   0.5         FDR bonferroni 0.012672897 6.725841e-04
+87   0.50   0.5 Sensitivity bonferroni 0.306910000 1.445522e-03
+88   0.50   0.5 Specificity bonferroni 0.999503333 2.375453e-05
+89   0.50   0.5        FWER         BH 0.241200000 4.278114e-03
+90   0.50   0.5         FDR         BH 0.045779990 9.014683e-04
+91   0.50   0.5 Sensitivity         BH 0.493010000 1.973627e-03
+92   0.50   0.5 Specificity         BH 0.996621111 6.693091e-05
+93   0.50   0.5        FWER         BY 0.032600000 1.775873e-03
+94   0.50   0.5         FDR         BY 0.008169286 5.028093e-04
+95   0.50   0.5 Sensitivity         BY 0.266370000 1.761168e-03
+96   0.50   0.5 Specificity         BY 0.999617778 2.143620e-05
+97   0.75   0.5        FWER       holm 0.044400000 2.059821e-03
+98   0.75   0.5         FDR       holm 0.012089048 6.169747e-04
+99   0.75   0.5 Sensitivity       holm 0.315930000 1.498115e-03
+100  0.75   0.5 Specificity       holm 0.999497778 2.350767e-05
+101  0.75   0.5        FWER bonferroni 0.042600000 2.019536e-03
+102  0.75   0.5         FDR bonferroni 0.011722857 6.116736e-04
+103  0.75   0.5 Sensitivity bonferroni 0.313160000 1.479966e-03
+104  0.75   0.5 Specificity bonferroni 0.999517778 2.307282e-05
+105  0.75   0.5        FWER         BH 0.238400000 4.261050e-03
+106  0.75   0.5         FDR         BH 0.043585944 8.645746e-04
+107  0.75   0.5 Sensitivity         BH 0.503110000 2.013688e-03
+108  0.75   0.5 Specificity         BH 0.996710000 6.570226e-05
+109  0.75   0.5        FWER         BY 0.034500000 1.825096e-03
+110  0.75   0.5         FDR         BY 0.008434365 5.056559e-04
+111  0.75   0.5 Sensitivity         BY 0.275020000 1.802422e-03
+112  0.75   0.5 Specificity         BY 0.999606667 2.106733e-05
+> 
+> proc.time()
+   user  system elapsed 
+ 39.583   1.539  17.046 

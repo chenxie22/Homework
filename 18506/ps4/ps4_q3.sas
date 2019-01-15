@@ -39,7 +39,7 @@ DATA Medicare_PS_PUF;
 		average_submitted_chrg_amt  		8
 		average_Medicare_payment_amt   		8
 		average_Medicare_standard_amt		8;
-	INFILE 'Z:\Desktop\2018FALL\stat506\stats506PS4_ChenXie\data\Medicare_Provider_Util_Payment_PUF_CY2016.txt'
+	INFILE '~\data\Medicare_Provider_Util_Payment_PUF_CY2016.txt'
 
 		lrecl=32767
 		dlm='09'x
@@ -195,12 +195,12 @@ proc sql;
 
 /* Export to csv: */
 proc export data=q3c_max
-  outfile = 'Z:\Desktop\2018FALL\stat506\stats506PS4_ChenXie\ps4_q3c.csv'
+  outfile = '~\ps4_q3c.csv'
   dbms=dlm replace; 
   delimiter  = ",";
 
 proc export data=q3d_max
-  outfile = 'Z:\Desktop\2018FALL\stat506\stats506PS4_ChenXie\ps4_q3d.csv'
+  outfile = '~\ps4_q3d.csv'
   dbms=dlm replace; 
   delimiter  = ",";
 

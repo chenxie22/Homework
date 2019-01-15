@@ -1,0 +1,224 @@
+---
+title: "Stats 506, F18, Problem Set 4"
+author: "Chen Xie, chenxie@umich.edu"
+date: "`r format.Date(Sys.Date(), '%B %d, %Y')`"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+
+##Question 1
+
+
+
+```{r q1_source,message = FALSE}
+source('./ps4_q1.R')
+```
+
+The table of the all-time leader in hits for each birth country is shown below.
+
+```{r q1_table1}
+cap="**The all-time leader in hits for each birth country**"
+col=c("Player","Debut","Country of Birth", "Hits")
+
+q1 %>%
+  transmute(
+    sprintf('%s %s',First, Last)
+    ,Debut,birthCountry,Hits) %>%
+  knitr::kable( align = 'l', caption = cap,
+               col.names = col)
+```
+
+\pagebreak
+
+##Question 2
+
+###Part a
+
+```{r q2a_source,message=FALSE}
+source('./ps4_q2a.R')
+```
+
+The whole output is stored as results_q4a.
+
+The table of Monte Carlo estimates with its standard errors of FWER, FDR, Sensitivity, or Specificity with different multiple comparison method for different rho is shown below (sigma = 1).
+
+```{r q2a_table}
+cap="**Monte Carlo estimates (standard errors) of FWER, FDR, Sensitivity, or Specificity with different multiple comparison method for different rho**"
+col=c('rho','Method', 'FDR','FWER','Sensitivity','Specificity')
+
+# Pretty printing
+pwc = function(x) format(round(x,4), big.mark = ',')
+
+results_q4a %>% 
+  mutate(`est (se)`=sprintf('%s (%s)',pwc(est),pwc(se))) %>%
+  select(metric,`est (se)`,rho,method) %>%
+  spread(key=metric,value=`est (se)`) %>%
+  knitr::kable( align = 'l', col.names = col, caption = cap)
+```
+
+
+
+\pagebreak
+
+
+###Part b
+
+```{r  q2b_source,message=FALSE}
+source('./ps4_q2b.R')
+
+```
+
+The table of Monte Carlo estimates with its standard errors of FWER, FDR, Sensitivity, or Specificity with different multiple comparison method for different rho is shown below (sigma = 0.25).
+
+```{r q2b_table1}
+cap="**Monte Carlo estimates (standard errors) of FWER, FDR, Sensitivity, or Specificity with different multiple comparison method for different rho, when sigma is 0.25**"
+col=c('rho','Method', 'FDR','FWER','Sensitivity','Specificity')
+
+results_q4b %>% 
+  filter(sigma==0.25) %>%
+  mutate(`est (se)`=sprintf('%s (%s)',pwc(est),pwc(se))) %>%
+  select(metric,`est (se)`,rho,method) %>%
+  spread(key=metric,value=`est (se)`) %>%
+  knitr::kable( align = 'l', col.names = col, caption = cap)
+
+```
+
+
+
+\pagebreak
+
+
+The table of Monte Carlo estimates with its standard errors of FWER, FDR, Sensitivity, or Specificity with different multiple comparison method for different rho is shown below (sigma = 0.5).
+
+```{r q2b_table2}
+cap="**Monte Carlo estimates (standard errors) of FWER, FDR, Sensitivity, or Specificity with different multiple comparison method for different rho, when sigma is 0.5**"
+col=c('rho','Method', 'FDR','FWER','Sensitivity','Specificity')
+
+results_q4b %>% 
+  filter(sigma==0.5) %>%
+  mutate(`est (se)`=sprintf('%s (%s)',pwc(est),pwc(se))) %>%
+  select(metric,`est (se)`,rho,method) %>%
+  spread(key=metric,value=`est (se)`) %>%
+  knitr::kable( align = 'l', col.names = col, caption = cap)
+```
+
+
+\pagebreak
+
+
+The table of Monte Carlo estimates with its standard errors of FWER, FDR, Sensitivity, or Specificity with different multiple comparison method for different rho is shown below (sigma = 1).
+
+```{r q2b_table3}
+cap="**Monte Carlo estimates (standard errors) of FWER, FDR, Sensitivity, or Specificity with different multiple comparison method for different rho, when sigma is 1**"
+col=c('rho','Method', 'FDR','FWER','Sensitivity','Specificity')
+
+results_q4b %>% 
+  filter(sigma==1) %>%
+  mutate(`est (se)`=sprintf('%s (%s)',pwc(est),pwc(se))) %>%
+  select(metric,`est (se)`,rho,method) %>%
+  spread(key=metric,value=`est (se)`) %>%
+  knitr::kable( align = 'l', col.names = col, caption = cap)
+```
+
+
+The table is also stored in the file results_q4b.RData.
+
+
+\pagebreak
+
+
+###Part c
+
+The tables are stored in the ps4_q2c-1.Rout, ps4_q2c-2.Rout, ps4_q2c-4.Rout, with sigma = 0.25, 0.5, 1, respectively.
+
+The table of Monte Carlo estimates with its standard errors of FWER, FDR, Sensitivity, or Specificity with different multiple comparison method for different rho is shown below (sigma = 0.25).
+
+```{r q2c_table1}
+cap="**Monte Carlo estimates (standard errors) of FWER, FDR, Sensitivity, or Specificity with different multiple comparison method for different rho, when sigma is 0.25**"
+col=c('rho','Method', 'FDR','FWER','Sensitivity','Specificity')
+
+read.table("./ps4_q2c-1.Rout",skip=120,nrow=112 ) %>% 
+  mutate(`est (se)`=sprintf('%s (%s)',pwc(est),pwc(se))) %>%
+  select(metric,`est (se)`,rho,method) %>%
+  spread(key=metric,value=`est (se)`) %>%
+  knitr::kable( align = 'l', col.names = col, caption = cap)
+```
+
+
+\pagebreak
+
+
+
+The table of Monte Carlo estimates with its standard errors of FWER, FDR, Sensitivity, or Specificity with different multiple comparison method for different rho is shown below (sigma = 0.5).
+
+```{r q2c_table2}
+cap="**Monte Carlo estimates (standard errors) of FWER, FDR, Sensitivity, or Specificity with different multiple comparison method for different rho, when sigma is 0.5**"
+col=c('rho','Method', 'FDR','FWER','Sensitivity','Specificity')
+
+read.table("./ps4_q2c-2.Rout",skip=120,nrow=112 ) %>% 
+  mutate(`est (se)`=sprintf('%s (%s)',pwc(est),pwc(se))) %>%
+  select(metric,`est (se)`,rho,method) %>%
+  spread(key=metric,value=`est (se)`) %>%
+  knitr::kable( align = 'l', col.names = col, caption = cap)
+```
+
+
+\pagebreak
+
+
+The table of Monte Carlo estimates with its standard errors of FWER, FDR, Sensitivity, or Specificity with different multiple comparison method for different rho is shown below (sigma = 1).
+
+```{r q2c_table3}
+cap="**Monte Carlo estimates (standard errors) of FWER, FDR, Sensitivity, or Specificity with different multiple comparison method for different rho, when sigma is 1**"
+col=c('rho','Method', 'FDR','FWER','Sensitivity','Specificity')
+
+read.table("./ps4_q2c-1.Rout",skip=120,nrow=112 ) %>% 
+  mutate(`est (se)`=sprintf('%s (%s)',pwc(est),pwc(se))) %>%
+  select(metric,`est (se)`,rho,method) %>%
+  spread(key=metric,value=`est (se)`) %>%
+  knitr::kable( align = 'l', col.names = col, caption = cap)
+```
+
+
+\pagebreak
+
+##Question 3
+
+
+###Part c
+
+The result is stored in the "ps4_q3c.csv".
+
+```{r q3c,message=FALSE}
+col=c("MRI Procedure","Volumn","Total Payment","Average Payment")
+cap="**MRI procedures with the highest volume, highest total payment, and highest average payment**"
+part_c=readr::read_delim ("./ps4_q3c.csv",delim=',') 
+part_c%>%
+  knitr::kable( align = 'l',caption = cap, col.names = col)
+
+```
+
+
+
+###Part d
+
+The result is stored in the "ps4_q3d.csv".
+
+
+
+```{r q3d,message=FALSE}
+col=c("MRI Procedure","Code", "Volumn","Total Payment","Average Payment")
+cap="**MRI procedures with the highest volume, highest total payment, and highest average payment**"
+part_d=readr::read_delim ("./ps4_q3d.csv",delim=',') 
+part_d%>%
+  knitr::kable( align = 'l',caption = cap, col.names = col)
+
+```
+
+###Part e
+
+The results of the two tables are matched. And the procedure "MRI scan of lower spinal canal" has the highest Volumn and also highest total payments. "MRI scan of one breast with contrast" has the largest average payment. 

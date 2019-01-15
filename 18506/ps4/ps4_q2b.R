@@ -6,7 +6,6 @@
 
 # Libraries:
 library(doParallel)
-library(doRNG)
 library(iterators)
 
 # Source: 
@@ -59,6 +58,9 @@ results=foreach(i=0.25*c(-3:3), .combine='rbind') %:%
   foreach(j=c(0.25,0.5,1), .combine='rbind') %do% {
     myFun(rho=i,sigma=j)
   }
+
+# Close cluser
+stopCluster(cl)
 
 # Reorganize the results:
 est=NULL; se=NULL
